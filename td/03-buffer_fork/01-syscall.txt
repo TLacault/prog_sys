@@ -1,0 +1,16 @@
+Pour distinguer les syscall des fonction de la libc,on regarde la section du manuel :
+2 pour les appels système, 3 pour la libc.
+
+Fonction  |  Type           |  Section  |  Note
+--------------------------------------------------------------------------------
+printf()  |  Libc           |  3        |  Utilise write(2) en interne.
+fopen()   |  Libc           |  3        |  Utilise open(2) en interne.
+fclose()  |  Libc           |  3        |  Flashe les buffers avant de fermer.
+fread()   |  Libc           |  3        |  Utilise read(2) en interne.
+open()    |  Appel système  |  2        |  Entrée directe dans le noyau.
+close()   |  Appel système  |  2        |
+lseek()   |  Appel système  |  2        |  Déplace le curseur de lecture/écriture.
+rewind()  |  Libc           |  3        |  Équivaut à fseek(stream, 0, SEEK_SET).
+write()   |  Appel système  |  2        |
+exit()    |  Libc           |  3        |  Flashe les buffers et termine.
+_exit()   |  Appel système  |  2        |  Termine immédiatement (sans flasher).

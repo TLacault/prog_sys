@@ -1,0 +1,85 @@
+TD 1 - Read/write
+Les basiques de la programmation système. Comment lire et écrire en binaire correctement sur des flux de fichier.
+
+1. Pages de manuel et sections
+La commande man(1) permet de localiser les pages de manuel par mots-clés, indépendamment des sections dans lesquelles elles se trouvent, grâce à l’option -k (NB: Dans tout le cours de prog. système, on notera cmd(k) pour spécifier la commande cmd appartenant à la section k du man). Lorsqu’on cherche précisément une page dont on connaît le nom, on pourra s’aider de grep(1) pour sélectionner les pages dont le nom commence exactement par celui que l’on souhaite. Ex.:
+
+man -k write | grep ^write
+Le système d’exploitation propose parfois plusieurs version d’une même section pour une commande. Quelle est la différence entre les sections 3 et 3p ou 3posix ? Dans quelle section se trouve la documentation de la fonction de bibliothèque standard printf() ? A quoi correspond(ent) l’(es) autre(s) page(s) de manuel que vous avez trouvée(s) sur printf ?
+
+2. Implémentation des appels systèmes
+Un appel système requiert une instruction assembleur spécifique, par exemple ta sur Sparc, int sur x86, trap sur m68k, syscall sur x86_64…
+
+Une implémentation de la bibliothèque C standard peut être trouvée grâce aux commandes:
+
+locate libc.so
+ou
+
+locate libc.a
+A l’ENSEIRB, vous pouvez prendre /usr/lib64/libc.so.6. Sur vos machines personnelles, par exemple sous Ubuntu, le fichier à prendre est /usr/lib/x86_64-linux-gnu/libc.so.6.
+
+Désassemblez une des bibliothèques trouvées avec l’utilitaire objdump(1) -d et trouvez des fonctions où des appels système ont lieu. Sans forcément connaître ce langage assembleur, trouvez comment le système d’exploitation reconnaît quel appel système est demandé.
+
+Tip: Rediriger le fichier désassemblé dans less et utiliser / pour rechercher les mots-clés.
+
+Une fois que vous pensez avoir compris comment fonctionnent les appels système, jetez un oeil à cette liste
+
+3. Écriture avec write(2)
+L’appel système write(2) permet d'écrire dans un fichier. Lisez-en la documentation.
+
+En partant du squelette donné en introduction. Écrivez un programme echo qui recopie ses arguments sur la sortie standard en utilisant write(2).
+
+Votre programme devra être écrit dans les règles de l’art : testez les erreurs possibles de write(2), et affichez le cas échéant un message avec la fonction fournie exit_if(). On en profitera pour regarder le code de cette fonction et l’expliquer (cf perror(3)).
+
+Pour tester si votre programme gère correctement les erreurs, exécutez la commande:
+
+./echo blabla < . 1>&0
+4. Écriture d’un entier avec write(2)
+Modifiez rapidement le programme précédent pour créer un programme write_number qui écrit sur sa sortie standard:
+
+le contenu mémoire d’un entier long (de type long) dont la valeur sera 5
+ainsi qu'à la suite le nombre d’octets qui ont été écrits par le premier appel à write(2).
+Que se passe-t-il lorsque vous exécutez votre programme ?
+
+./write_number
+Observez la sortie grâce à l’outil od:
+
+./write_number | od -x
+5. Gestion des erreurs
+perror() est-elle un appel système ? Pourquoi ?
+
+6. Lecture avec read(2)
+En partant du squelette donné en introduction, et du programme echo. Écrivez un programme read qui lit du texte sur son entrée standard avec l’appel système read(2) et écrit sur sa sortie standard avec write(2) le texte lu.
+
+Le programme se termine lorsque son entrée standard est fermée (utilisez Ctrl-d dans le terminal pour fermer l’entrée standard d’un processus).
+
+Pour la lecture, on utilisera un tableau de caractères dont la taille sera fixée par une constante:
+
+#define BUFFER_SIZE ...
+Testez votre programme de différentes manières:
+
+./read
+Lecture de fichier (cat):
+
+./read < input_file
+Copie de fichier:
+
+./read < input_file > output_file
+Gestion d’erreur:
+
+./read < .
+7. Lecture d’un entier avec read(2)
+En repartant des exercices précédents, écrivez un programme qui lit sur son entrée standard ce qui est produit par le programme write_number, et l’affiche avec printf(3).
+8. Lecture et écriture d’une structure
+Reprenez les exercices write_number.c et read_number.c en write_struct.c et read_struct.c Modifiez les deux nouveaux pour écrire et lire au lieu du long une structure du type suivant, où c1 contiendra a,l contiendra 5, et c2 contiendra b:
+
+struct nopad {
+    char c1;
+    long l;
+    char c2;
+};
+On déclarera la structure dans utils.h pour qu’elle soit partagée dans les deux programmes.
+
+Quelle est la taille de la structure ?
+Est ce que si vous recompilez avec make CFLAGS+=-O3, cette taille va changer ?
+Peut-on réduire cette taille ? et si oui, comment ?

@@ -1,0 +1,61 @@
+TD 4 - Fork et tubes non nommés
+Ressources annexes
+Communication par tuyau. Page d’un collègue du LaBRI qui présente en détail les communications par tubes.
+1. Création d’un tube non nommé
+Écrire un programme qui:
+
+crée un tube en utilisant pipe(2).
+se duplique (fork(2)).
+le père:
+écrit (write) 10 fois "Hello World" dans le tube
+affiche (fprintf) sur la sortie d’erreur "Je suis le pere, j'ai ecrit %d octets et je quitte" en calculant le nombre d’octets envoyés sur le pipe.
+retourne
+le fils:
+lit (read) au plus 500 octets depuis le tube (en une seule fois), les affiche (write) sur sa sortie standard
+affiche (frintf) sur la sortie d’erreur "Je suis le fils, j'ai lu %d octets et je quitte"
+retourne
+Note: comme tout bon programmeur, vous utiliserez des macros pour les constantes.
+
+2. Règles pour les tubes
+Reprendre le premier exercice et tester dans le cas où le père écrit 50 fois son message, 100 fois, 500 fois, 1000 fois, 5000 fois, 10000 fois… On passera le nombre de fois en paramètre du programme.
+
+Si votre programme semble bloqué, vérifier le statut des processus. Sur une feuille blanche, faire une représentation des processus (père et fils) ainsi que de leurs tables des descripteurs. Trouver le problème et corriger votre programme.
+
+Une fois que tout marche bien, lancer votre programme comme suit: ./mypipe xx &. Lorsqu’on lance un processus en tâche de fond dans le shell, celui-ci nous affiche des informations sur le statut de complétion du processus. Quel est le statut de complétion de votre programme ?
+
+3. Mise en majuscules (Travail perso)
+Reprendre l’exercice précédent et modifier le fils pour qu’il lise les données en continu depuis le tube et les passe en majuscules avant de les afficher sur sa sortie standard.
+
+Dans le père, faire en sorte que la sortie standard soit associée au tube (dup2) et exécuter le programme ps en utilisant execlp.
+
+4. Fork, exec et pipe /commandes composées
+Écrire un programme qui exécute un pipeline de commandes comme le fait le shell, lorsque vous tapez une commande composée. Le programme aura une variable commandes qui contiendra la liste des commandes à exécuter, chaque commande consiste en un tableau de chaînes de caractères terminé par NULL:
+
+Exemple d’enchaînement de commandes:
+
+#if !defined(SIMPLER_VERSION)
+char  *ls[] = { "ls", "-l", NULL};
+char  *tr[] = { "tr", "-d", "[:blank:]", NULL};
+char **commandes[] = { ls, tr };
+#else
+char  *ls[]   = { "ls",   "-l", NULL};
+char  *grep[] = { "grep", ".c", NULL};
+char  *wc[]   = { "wc",   "-l", NULL};
+char **commandes[] = { ls, grep, wc };
+#endif
+int nb_commandes = sizeof(commandes) / sizeof(char*);
+La commande se terminera juste après la terminaison du dernier processus du pipeline (tr dans l’exemple). Si ce dernier processus s’est terminé normalement, sa valeur de retour devra être propagée dans celle du processus pipeline. Autrement un message devra donner la raison de la terminaison du processus et retourner la valeur EXIT_FAILURE.
+
+On étudiera aussi le cas où il y a plus de 2 commandes.
+
+5. Fork, exec et pipe /commandes composées (suite / travail perso)
+Reprendre l’exercice précédent et faites en sorte que la liste des commandes qui constituent le pipeline soit fournie sur la ligne de commande.
+
+On utilisera la chaîne "--" comme séparateur de commandes, et la fonction split_args fournie pour découper la série d’arguments.
+
+Par exemple,
+
+$ pipeline ls -l -- grep toto -- less
+devra produire le même effet que
+
+$ ls -l | grep toto | less

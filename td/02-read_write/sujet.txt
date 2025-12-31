@@ -1,0 +1,104 @@
+TD 2 - Read/write (suite)
+Utilisation de fichiers: fstat, open, close, et pipes nommés.
+
+1. Type de fichier - Entrée standard
+En partant du squelette donné en introduction, nous allons écrire un programme pour afficher le type de différents fichiers (au sens large) et testant le type de l’entrée standard.
+
+En utilisant fstat(2) et STDIN_FILENO comme descripteur, affichez le type de l’entrée standard. Pour cela on utilisera les macros S_IS... sur le champ st_mode de la structure stat.
+
+Regarder les pages de man de fstat(2) et inode(7).
+
+Affichez le résultat dans les cas suivants:
+
+./a.out
+./a.out < /etc
+./a.out < ./a.out
+2. Pipe/FIFO Nommé (Chat):
+Un fichier FIFO est un type spécial de fichier qui correspond à un tube: ce qu’on écrit d’un coté du tube peut être lu de l’autre coté. Il peut être ouvert par plusieurs processus, tant en lecture qu’en écriture. Lorsque des processus échangent des données par le biais d’une file FIFO, le noyau transfère les informations de manière interne, sans passer par une écriture réelle dans le système de fichier. Ainsi, le fichier spécial FIFO n’a pas de véritable contenu, c’est essentiellement un point de référence pour que les processus puissent accéder au tube en employant un nom dans le système de fichiers.
+
+Le but de l’exercice est de créer un chat à l’aide d’un fichier FIFO.
+
+Créez un programme C client.c qui ouvre une FIFO versserveur (ou tout autre FIFO fournie par votre encadrant) en écriture et y écrit le texte lu sur l’entrée standard. On utilisera les fonctions:
+open(2) pour ouvrir la FIFO en écriture,
+read(2) pour lire sur l’entrée standard,
+write(2) pour écrire sur la FIFO.
+Essayez d’envoyer des messages au serveur depuis votre poste ? Que se passe t’il ? Pourquoi ?
+Connectez vous en ssh sur ssh.enseirb-matmeca.fr et essayez de nouveau d’envoyer un message au serveur ? Pourquoi cela fonctionne t’il ce coup-ci ? Quelle est la différence ?
+Essayez de lancer plusieurs clients en même temps, seul ou avec votre voisin, et observez ce qu’il se passe. Expliquez.
+Créez maintenant votre propre programme serveur.c qui crée une FIFO et affiche sur la sortie standard les caractères qui sont lus par la FIFO. On appellera la FIFO versserveur et le programme se fera simplement en quatre étapes:
+Utilisation de mknod pour créer le FIFO
+Ouverture du FIFO à l’aide de open
+Lecture sur le FIFO à l’aide de read
+Écriture sur la sortie standard avec write
+Notez que cet exercice doit se faire rapidement, en repartant de l’exercice précédent.
+Que faut-il modifier dans votre programe pour pouvoir transmettre des caractères mais également des fichiers entiers (binaires, images, …). Vous pouvez utiliser les redirections en entrée et en sortie pour vérifier le bon fonctionnement.
+Pour le client, comme pour le serveur, on pourra utiliser la fonction suivante pour transférer les données sous réserve de l’avoir comprise:
+
+#define BUFFER_SIZE 256
+
+void
+transfer( int fd_in, int fd_out )
+{
+    char buffer[BUFFER_SIZE];
+    ssize_t len_read, wrote, rc;
+
+    while( 1 ) {
+        len_read = read( fd_in, buffer, BUFFER_SIZE );
+        exit_if( len_read == -1, "read" );
+
+        if ( len_read == 0 ) {
+            /* EOF*/
+            return;
+        }
+
+        wrote = 0;
+        /*
+         * Si jamais write n'écrit pas assez, on doit boucler pour
+         * tout écrire avant de repasser à read
+         */
+        do{
+            rc = write( fd_out, buffer + wrote, len_read - wrote );
+            exit_if( rc == -1, "write" );
+            wrote += rc;
+        } while( wrote < len_read );
+    }
+}
+3. Descripteurs de fichier et dup:
+Le but de cet exercice est d’observer l’aliasing avec dup.
+
+Commencer par créer un fichier donnees.txt qui contient la chaîne de caractères abcdefgh
+En repartant du squelette donné en introduction, et en dérivant rapidement la fonction de transfert, écrivez un programme qui lit:
+Ouvre le fichier donnees.txt (open)
+Lit les 4 premiers octets de ce fichier (read).
+Affiche les 4 premiers octets sur la sortie standard (write).
+Ferme le fichier (close).
+Une fois que cette première version est finie, on va la dériver en deux versions: alias_open.c et alias_dup.c:
+Pour alias_open.c, une fois que le fichier est ouvert, juste avant sa fermeture, on va faire un deuxième open du fichier et de même lire 4 octets sur ce nouveau descripteurs, puis les écrire sur la sortie standard.
+Pour alias_dup.c, une fois le fichier ouvert, juste avant sa fermeture, on va dupliquer le descripteur de fichier avec dup et de même on va lire 4 octets sur ce nouveau descripteur, puis les écrire sur la sortie standard.
+Comparez l’exécution des deux derniers programmes et expliquez ce que vous constatez.
+4. directory, ls:
+En partant du squelette donné en introduction, et de l’exercice sur la fonction stat, nous allons partiellemnt ré-écrire le programme myls.c pour afficher le contenu d’un répertoire à l’aide des appels opendir(3),readdir(3),closedir(3). Ce programme aura partiellement le comportement de ls -l.
+
+En utilisant le contenu de l’exercice sur stat, et les fonctions stat(2)/lstat(2)/fstat(2), ajoutez devant chaque fichier une lettre indiquant son type: “-” si régulier, “d” si répertoire, “l” si lien… Créez des liens symboliques dans votre compte si nécessaire pour testez votre programme.
+
+Pour finir, modifiez votre programme de telle sorte que la liste des répertoires dont on veut afficher le contenu soit fournie en argument:
+
+./myls . .. / /tmp
+Si aucun argument n’est fourni au programme, alors il utilisera le répertoire courant (i.e. ./myls équivaut à ./myls .)
+
+5. Pour aller plus loin
+1. Chat à deux
+Normalement, un chat n’est pas un canal de communication mono-directionel, il est nécessaire que l'échange entre les deux programmes soit bi-directionnel. Modifiez les programmes précédents en créant 2 FIFOs: versclient et versserveur pour que cela fonctionne. Pourquoi faut-il utiliser deux FIFOs, et une seule ne suffit pas?
+
+Attention, toute lecture sur une FIFO est bloquante!
+
+2. Chat à N
+On souhaite désormais étendre notre chat à n clients (n > 2), tel que tout ce qui est tapé par un client est vu par tout les autres. Comment feriez-vous ?
+
+3. le chat, la suite :
+On reprend le chat à plusieurs du premier exercice. Pour éviter qu’un client recoive ses propres messages en echo, on peut envoyer à message un premier octet qui identifie le client. Un client recevant son message ne l’imprimera alors pas. Proposez une solution pour implémenter ce protocole.
+
+4. ls, la suite :
+Ajoutez une option -l, permettant d’activer ou non l’affichage du type des fichiers (par défault celui-ci sera inactif). On utilisera la fonction getopt(3) pour gérer les options.
+Ajoutez une option -R, permettant d’effectuer un affichage récursif du contenu du(es) répertoire(s).
+Ajoutez l’affichage des droits, de la date de création (ctime), du nom de l’utilisateur (getpwuid)…
