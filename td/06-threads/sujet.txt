@@ -1,0 +1,34 @@
+TD 6 - Threads and concurrency
+1. Threads
+Le but de cet exercice est la manipulation des fonctions de création et d’attente des threads. On pourra faire man pthreads(3) pour avoir une liste exhaustive des fonctions utilisables pour les threads. La création de threads se fait avec la fonction pthread_create(3) qui prend notamment en argument un pointeur sur la fonction qu’exécutera le thread.
+
+Écrire un programme qui lance 8 nouveaux threads (en plus de celui du programme principal) sur une fonction void *start(void *) qu’on écrira. Cette fonction affichera le PID du processus et un identifiant de thread qui correspond à l’itérateur de boucle. L’itérateur de boucle qui servira d’identifiant à chaque thread sera transmis à la fonction start par pthread_create par son dernier argument. N’oubliez pas de compiler avec l’argument CFLAGS+=-pthread.
+
+La fonction pthread_join(3) permet d’attendre un thread identifié par son THREAD ID (donné lors de l’appel de pthread_create. Modifiez le programme précédent pour que le thread principal attende tous les threads qu’il a créé puis affiche un message sur la sortie standard.
+
+Ajoutez deux variables entières au programme précédent, l’une globale, l’autre locale à la fonction start. Initialiser les à 0. Incrémentez dans start les deux variables, affichez leurs adresses et leurs valeurs. Que se passe-t-il ?
+
+2. Vendeurs de tickets :
+L'équipe Gala de l’Enseirb souhaite améliorer la façon dont elle vend les tickets pour la soirée. Actuellement, une seule personne est responsable de la vente des tickets (tickets.c) et cela nuit à sa bonne présence en cours et les attentes pour obtenir son billet sont bien souvent trop longues.
+
+L'équipe Gala, pour gagner du temps, souhaite déléguer le travail à un pool de vendeurs de tickets pour paralléliser la vente. Modifier le programme tickets.c de façon à ce que le programme crée 8 étudiants (threads) qui s’occupent en parallèle de la vente des tickets. Le nombre de tickets à vendre restera une variable globale. Chaque étudiant/thread fera la boucle suivante:
+
+Tester si le nombre de billets à vendre est positif
+S’il est positif:
+Faire un sched_yield(3)
+Décrémenter de 1 le nombre de billets disponibles,
+Incrémenter le nombre de billets vendus par ce thread.
+Sinon
+afficher le nombre de billets vendus par ce thread.
+retourner le nombre de billets vendus par ce thread avec pthread_exit(3)
+L'équipe Gala (le thread principal) devra récupérer le nombre de billets vendus par chacun des vendeurs et affichera le total de tickets vendus sur la sortie standard.
+
+Expérimentez avec un nombre croissant de billets à vendre. Que se passe-t-il ?
+
+Où est la section critique de ce code ?
+
+Proposez deux modifications de ce programme permettant de mettre la section critique en exclusion mutuelle et de corriger le programme:
+
+À l’aide de sémaphore
+À l’aide de mutex
+Vérifier qu’il n’y a plus le problème observé précédemment dans ces deux versions.
