@@ -1,0 +1,74 @@
+TD 5 - Signaux et mémoire partagée (mmap/shm)
+1. Création d’un gestionnaire capturant le signal SIGUSR1
+Écrire un programme mysignal qui:
+
+affiche son propre pid,
+installe un gestionnaire de signaux avec sigaction(2), pour le signal SIGUSR1 qui affiche le numéro du signal reçu.
+se met en attente d’un signal
+restaure le gestionnaire par défaut.
+Lancer le programme et tester l’effet des différents signaux avec la commande shell kill(1) sur l’exécution du programme.
+
+On peut éventuellement mettre une boucle while autour de l’appel à sigsuspend pour ne pas relancer systématiquement le programme. Essayer notamment l’enchaînement SIGSTOP, SIGCONT, SIGUSR1, ou le signal SIGKILL. Que se passe-t-il ?
+
+2. Communication par mmap
+Le but de cet exercice est de reprendre l’exercice précédent pour faire communiquer 2 processus au travers d’une zone mémoire partagée par mmap: sig_receveur.c et sig_expediteur.c
+
+Créez un fichier texte contenant au moins 128 caractères.
+Reprenez le code de l’exercice précédent dans un programme sig_receveur.c qui fait:
+un mmap(2) de ce fichier
+écrit son PID au début de la zone mémoire partagée,
+se met en attente avec sigsupsend sur le signal SIGUSR1
+Lorsque le signal est reçu, il affiche le contenu du segment de mémoire partagée en plus d’un message prédéfini.
+Testez ce programme en envoyant le signal SIGUSR1 à l’aide de la commande kill(1)
+Ecrivez un second programme sig_expediteur.c qui fait:
+un mmap(2) de ce fichier,
+lit le PID au début de la zone mémoire partagée,
+écrit dans le segment de mémoire ce qu’il lit sur l’entrée standard
+envoie au processus dont il a lu le PID le signal SIGUSR1.
+Que se passe-t-il si plus de 128 caractères sont écrits dans le segment de mémoire partagée ? Quelle est la taille de ce segment ? (écrivez dedans jusqu'à ce qu’une erreur se produise).
+3. Protections de mmap anonyme
+Écrire un programme map_anonymous.c qui:
+
+Appelle:
+p = mmap(NULL, sizeof(int), PROT, MAP_PRIVATE |  MAP_ANONYMOUS, -1, 0);
+Imprime sur l’erreur standard le pointeur avec le formatage %p de fprintf(3).
+Imprime sur l’erreur standard la valeur de *p avec le formatage %d.
+Affecte la valeur 42 à la destination du pointeur.
+Imprime sur l’erreur standard la valeur du pointeur avec le formatage %d avant de terminer.
+On passera la variable de pré-processeur PROT en argument du compilateur de la façon suivante:
+
+make map_anonymous CFLAGS+='-DPROT=PROT_NONE'  && mv map_anonymous map_none
+make map_anonymous CFLAGS+='-DPROT=PROT_READ'  && mv map_anonymous map_read
+make map_anonymous CFLAGS+='-DPROT=PROT_WRITE' && mv map_anonymous map_write
+make map_anonymous CFLAGS+='-DPROT=PROT_EXEC'  && mv map_anonymous map_exec
+make map_anonymous CFLAGS+='-DPROT="PROT_EXEC | PROT_WRITE"' && mv map_anonymous map_ew
+Exécuter ces programmes et expliquer ce qu’il se passe en vous aidant de la page de manuel de mmap(2). Expliquer ce qui se passe.
+
+4. Partage de fonctions
+On souhaite partager entre plusieurs processus le code d’une fonction, sans que cette fonction fasse partie de l’exécutable des processus. On va pour cela reproduire le fonctionnement d’une bibliothèque partagée, chargée dynamiquement (man dlopen, dlsym). Pour cela, on écrira d’abord un programme qui copie une fonction dans une zone mémoire partagée, puis un autre programme qui partage cette zone mémoire et appelle la fonction:
+
+Ecrire un programme load_add.c:
+Créer une fonction add(int, int) qui renvoie la somme de ses deux arguments.
+Dans le main, ouvrir/créer avec write(2) un fichier libadd.a de 2048 octets (s’il n’existe pas).
+Mapper ce fichier dans une zone mémoire partagée à l’aide de mmap(2). Pour cela, on utilisera les flags PROT_WRITE|PROT_EXEC et MAP_SHARED.
+Copier à l’aide de la fonction memcpy(3) les 2048 premiers octets correspondant à la fonction add dans la zone de mémoire partagée créée à l’aide de mmap(2).
+Écrire un programme use_add.c:
+Crée une zone mémoire partagée, synchronisée avec le fichier libadd.a. On utilisera les flags PROT_EXEC et MAP_SHARED pour pouvoir exécuter le code de cette zone mémoire.
+Affecter un pointeur f de type int (*)(int, int) avec l’adresse de cette zone mémoire.
+Appeler la fonction f(42,12) et afficher le résultat.
+Que se passe-t-il si vous lancez plusieurs programmes use dans différents shells ?
+5. Communication par mémoire partagée (shm):
+L’allocation d’un segment de mémoire partagée avec shmat(2) nécessite d’abord d’obtenir un identifiant de ce segment avec shmget(2). Cet identifiant peut être obtenu à l’aide d’une clé créée avec ftok(3).
+
+Écrire un programme qui:
+Crée ou récupère un identifiant à l’aide à de shmget(2) et ftok(3).
+Pour la création de la clé à l’aide de ftok(3), on utilisera le nom d’un fichier système (par ex. /etc/bashrc).
+Pour shmget(2), on utilisera une taille de 1024 octets et pour le flag, la valeur IPC_CREAT | 0644.
+Attache le segment ainsi identifié à l’espace virtuel du processus, avec shmat(2), comme un tableau d’entiers.
+Incrémente le premier entier et l’affiche.
+Détache le segment de l’espace du processus avec shmdt(2)
+quitte.
+Relancer plusieurs fois votre programme. Qu’observez vous ?
+Connectez vous en ssh sur un serveur de l’enseirb indiqué par votre encadrant (ex: babaorum), et recommencez l’expérience.
+Modifier le programme précédent pour qu’un nombre quelconque de processus puissent partager le même segment mémoire et connaître les PID des autres processus partageant ce segment. On utilisera le segment mémoire pour stocker le nombre de PIDs suivi du tableau des PIDs partageant la mémoire.
+Tester votre programme en utilisant fork(2) dans une boucle for de 1 à 4 pour créer 16 processus partageant un segment commun. Le processus initial affichera avant de quitter la liste des processus partageant le segment de mémoire avec lui. Faire plusieurs exécutions (éventuellement passer à 32 processus créés). Qu’observez-vous ?
