@@ -1,7 +1,5 @@
 # Programmation Système - PG204
 
----
-
 ## Utilisation des TD
 
 Le dossier **`00-template`** contient les fichiers **`utils`** update avec tout les headers nécessaires pour compiler les TP.
@@ -15,7 +13,3 @@ Ou alors juste dev dans le dossier **`00-template`** directement.
 
 Les fiches markdown sont dans le dossiers de leur TP respectif.
 Leur version compilé en pdf et imprimable est dans le dossier **`fiches/`**.
-
----
-
-Force à vous et bon courage pour les partiels !
